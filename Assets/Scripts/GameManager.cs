@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.XR.ARFoundation;
 
 public class GameManager : MonoBehaviour
 {
@@ -11,6 +12,12 @@ public class GameManager : MonoBehaviour
     public Button _LandButton;
 
     public GameObject _Controls;
+
+    public ARRaycastManager _RaycastManager;
+    public ARPlaneManager _PlaneManager;
+    List<ARRaycastHit> _HitResult = new List<ARRaycastHit>();
+
+    public GameObject _Drone;
 
     struct DroneAnimationControls
     {
@@ -22,9 +29,9 @@ public class GameManager : MonoBehaviour
     }
 
     DroneAnimationControls _MovingLeft;
-    // DroneAnimationControls _MovingRight;
     DroneAnimationControls _MovingBack;
-    // DroneAnimationControls _MovingForward;
+    // DroneAnimationControls _MovingDown;
+    // DroneAnimationControls _MovingUp;
 
     void Start()
     {
@@ -67,11 +74,33 @@ public class GameManager : MonoBehaviour
         // float speedZ = Input.GetAxis("Vertical");
 
         UpdateControls(ref _MovingLeft);
-        // UpdateControls(ref _MovingRight);
         UpdateControls(ref _MovingBack);
-        // UpdateControls(ref _MovingForward);
+        // UpdateControls(ref _MovingDown);
+        // UpdateControls(ref _MovingUp);
 
         _DroneController.Move(_MovingLeft._axis * _MovingLeft._direction, _MovingBack._axis * _MovingBack._direction);
+        // _DroneController.Move(_MovingDown._axis * _MovingDown._direction, _MovingUp._axis * _MovingUp._direction);
+
+        if (_DroneController.IsIdle())
+        {
+            UpdateAR();
+        }
+    }
+
+    void UpdateAR()
+    {
+        Vector3 positionScreenSpace = Camera.current.ViewportToScreenPoint(new Vector3(0.5f, 0.5f));
+        _RaycastManager.Raycast(positionScreenSpace, _HitResult, UnityEngine.XR.ARSubsystems.TrackableType.PlaneWithinBounds);
+        
+        if(_HitResult.Count > 0)
+        {
+            if(_PlaneManager.GetPlane(_HitResult[0].trackableId).alignment == UnityEngine.XR.ARSubsystems.PlaneAlignment.HorizontalUp)
+            {
+                Pose pose = _HitResult[0].pose;
+                _Drone.transform.position = pose.position;
+                _Drone.SetActive(true);
+            }
+        }
     }
 
     void EventClickFlyButton()
@@ -150,4 +179,28 @@ public class GameManager : MonoBehaviour
         _MovingBack._moving = false;
     }
 
+    /*public void EventOnDownButtonPressed()
+    {
+        _MovingDown._moving = true;
+        _MovingDown._interpolatingAsc = true;
+        _MovingDown._direction = -2.0f;
+    }
+
+    public void EventOnDownButtonReleased()
+    {
+        _MovingDown._moving = false;
+    }
+
+    public void EventOnUpButtonPressed()
+    {
+        _MovingUp._moving = true;
+        _MovingUp._interpolatingAsc = true;
+        _MovingUp._direction = 2.0f;
+    }
+
+    public void EventOnUpButtonReleased()
+    {
+        _MovingUp._moving = false;
+    }
+*/
 }
